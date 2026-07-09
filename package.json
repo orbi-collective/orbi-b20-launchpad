@@ -1,0 +1,44 @@
+{
+  "name": "b20-proof",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@paper-design/shaders-react": "0.0.76",
+    "@react-three/drei": "10.7.7",
+    "@react-three/fiber": "9.6.1",
+    "@vercel/kv": "3.0.0",
+    "clsx": "2.1.1",
+    "html-to-image": "1.11.13",
+    "motion": "12.41.0",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "three": "0.181.2",
+    "viem": "2.53.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.1",
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "0.181.0",
+    "@vitejs/plugin-react": "5.1.2",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.2.9",
+    "jsdom": "27.3.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.15"
+  }
+}

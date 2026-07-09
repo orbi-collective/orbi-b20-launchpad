@@ -1,0 +1,13 @@
+.next
+node_modules
+dist
+coverage
+.qa
+.env
+.env*.local
+pnpm-debug.log*
+npm-debug.log*
+vercel
+.vercel
+tsconfig.tsbuildinfo
+.claude/settings.local.json
