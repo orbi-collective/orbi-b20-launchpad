@@ -46,9 +46,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </Link>
               <SiteNav />
               <div className="header-actions">
-                <a className="built-on-base" href="https://base.org" target="_blank" rel="noreferrer">
-                  Built on <span>Base</span>
-                  <i aria-hidden="true" />
+                <a className="orynth-badge" href="https://orynth.dev/projects/orbi" target="_blank" rel="noopener noreferrer">
+                  {/* External badge served by Orynth; must match their image exactly, so a plain img (not next/image). */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://orynth.dev/api/badge/orbi?theme=dark&style=minimal" alt="Featured on Orynth" width={152} height={48} />
                 </a>
                 <ConnectButton />
               </div>

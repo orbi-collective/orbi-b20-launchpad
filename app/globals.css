@@ -1583,7 +1583,7 @@ button:disabled {
     font-size: 22px;
   }
 
-  .built-on-base {
+  .orynth-badge {
     display: none;
   }
 
@@ -1900,28 +1900,24 @@ button:disabled {
   transform: translateX(-50%);
 }
 
-.built-on-base {
+.orynth-badge {
   justify-self: end;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: rgba(235, 242, 255, 0.82);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  border-radius: 8px;
+  opacity: 0.92;
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
-.built-on-base span {
-  color: #4d8dff;
+.orynth-badge:hover {
+  opacity: 1;
+  transform: translateY(-1px);
 }
 
-.built-on-base i {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: #326bff;
-  box-shadow: inset -5px 0 0 rgba(255, 255, 255, 0.78), 0 0 18px rgba(50, 107, 255, 0.65);
+.orynth-badge img {
+  display: block;
+  height: 34px;
+  width: auto;
 }
 
 .header-actions {
@@ -2480,7 +2476,7 @@ button:disabled {
     font-size: 22px;
   }
 
-  .built-on-base {
+  .orynth-badge {
     display: none;
   }
 
@@ -3743,7 +3739,7 @@ button:disabled {
 /* Intermediate desktop: hide the decorative "Built on Base" and tighten nav so the wallet button
    never collides with the menu before the layout stacks at 980px. */
 @media (max-width: 1200px) and (min-width: 981px) {
-  .built-on-base {
+  .orynth-badge {
     display: none;
   }
   .top-nav {
