@@ -5,29 +5,46 @@ import {BaseTest} from "base-std-test/lib/BaseTest.sol";
 import {IB20} from "base-std/interfaces/IB20.sol";
 import {CurveLaunchpad} from "../src/CurveLaunchpad.sol";
 
-/// @dev Records the graduation deposit instead of talking to a real DEX.
+/// @dev Records the graduation deposit instead of talking to a real DEX. `skewBps` models a
+///      pre-seeded/manipulated pair: the router can only place `skewBps/10000` of the desired
+///      token side, mirroring how Uniswap's `_addLiquidity` scales one side down to an existing
+///      reserve ratio. Below the caller's min it reverts, exactly like the real router.
 contract MockV2Router {
+    uint256 private constant BPS = 10_000;
+
     address public lastToken;
     uint256 public lastTokenAmount;
     uint256 public lastEthAmount;
     address public lastLpRecipient;
     uint256 public calls;
+    uint256 public skewBps = BPS; // 10000 = fresh pair, full amounts placed
+
+    error InsufficientTokenAmount();
+    error InsufficientEthAmount();
+
+    function setSkew(uint256 bps) external {
+        skewBps = bps;
+    }
 
     function addLiquidityETH(
         address token,
         uint256 amountTokenDesired,
-        uint256,
-        uint256,
+        uint256 amountTokenMin,
+        uint256 amountEthMin,
         address to,
         uint256
     ) external payable returns (uint256, uint256, uint256) {
-        IB20(token).transferFrom(msg.sender, address(this), amountTokenDesired);
+        uint256 amountToken = (amountTokenDesired * skewBps) / BPS;
+        if (amountToken < amountTokenMin) revert InsufficientTokenAmount();
+        if (msg.value < amountEthMin) revert InsufficientEthAmount();
+
+        IB20(token).transferFrom(msg.sender, address(this), amountToken);
         lastToken = token;
-        lastTokenAmount = amountTokenDesired;
+        lastTokenAmount = amountToken;
         lastEthAmount = msg.value;
         lastLpRecipient = to;
         calls += 1;
-        return (amountTokenDesired, msg.value, 1e18);
+        return (amountToken, msg.value, 1e18);
     }
 }
 
@@ -136,12 +153,21 @@ contract CurveLaunchpadTest is BaseTest {
     }
 
     // ---------------------------------------------------------------- graduation
-    function test_buy_crossingTarget_graduates() public {
+    function test_buy_fillingCurve_marksReadyThenGraduates() public {
         address token = _launch();
         vm.prank(trader);
         pad.buy{value: 0.6 ether}(token, 0); // net 0.594 > 0.5 target
 
+        // Buy does NOT graduate; the curve is full and awaiting a graduate() call.
         (, uint128 realEth,, bool grad) = pad.pools(token);
+        assertFalse(grad, "not graduated inside buy");
+        assertGt(uint256(realEth), GRAD, "curve full");
+        assertTrue(pad.isReadyToGraduate(token), "flagged ready");
+        assertEq(router.calls(), 0, "router untouched during buy");
+
+        // Anyone can graduate.
+        pad.graduate(token);
+        (, realEth,, grad) = pad.pools(token);
         assertTrue(grad, "pool graduated");
         assertEq(uint256(realEth), 0, "reserve moved to LP");
         assertEq(router.calls(), 1, "router called once");
@@ -149,14 +175,78 @@ contract CurveLaunchpadTest is BaseTest {
         assertEq(router.lastLpRecipient(), pad.DEAD(), "LP locked at dead address");
         assertEq(IB20(token).balanceOf(address(pad)), 0, "leftover curve tokens burned");
         assertLt(IB20(token).totalSupply(), SUPPLY, "burn shrank supply");
-        // LP priced at the curve's closing spot price: tokensLp = eth * tokenReserve / vEth.
         assertGt(router.lastTokenAmount(), 0, "tokens deposited");
+    }
+
+    function test_buy_onFullCurve_reverts() public {
+        address token = _launch();
+        vm.startPrank(trader);
+        pad.buy{value: 0.6 ether}(token, 0);
+        vm.expectRevert(CurveLaunchpad.CurveFull.selector);
+        pad.buy{value: 0.01 ether}(token, 0);
+        vm.stopPrank();
+    }
+
+    function test_sell_staysOpenWhileFull_beforeGraduation() public {
+        address token = _launch();
+        vm.startPrank(trader);
+        uint256 out = pad.buy{value: 0.6 ether}(token, 0);
+        assertTrue(pad.isReadyToGraduate(token), "full");
+        // Holder can still exit via the curve before graduation runs.
+        IB20(token).approve(address(pad), out);
+        uint256 ethOut = pad.sell(token, out / 2, 0);
+        assertGt(ethOut, 0, "sell still works while full");
+        vm.stopPrank();
+    }
+
+    function test_graduate_beforeFull_reverts() public {
+        address token = _launch();
+        vm.prank(trader);
+        pad.buy{value: 0.1 ether}(token, 0); // below target
+        vm.expectRevert(CurveLaunchpad.NotReadyToGraduate.selector);
+        pad.graduate(token);
+    }
+
+    function test_graduate_twice_reverts() public {
+        address token = _launch();
+        vm.prank(trader);
+        pad.buy{value: 0.6 ether}(token, 0);
+        pad.graduate(token);
+        vm.expectRevert(CurveLaunchpad.AlreadyGraduated.selector);
+        pad.graduate(token);
+    }
+
+    /// @dev A pair whose ratio is skewed away from the curve close makes the router deposit
+    ///      outside the slippage band; graduation reverts and state rolls back (retryable),
+    ///      instead of migrating liquidity at the manipulated price.
+    function test_graduate_manipulatedPair_reverts_andRetryable() public {
+        address token = _launch();
+        vm.prank(trader);
+        pad.buy{value: 0.6 ether}(token, 0);
+
+        router.setSkew(500); // router can only place 5% of the desired token side -> below min
+        vm.expectRevert(); // InsufficientTokenAmount bubbles out of the router
+        pad.graduate(token);
+
+        // Nothing migrated; pool still live and sells still work.
+        (,,, bool grad) = pad.pools(token);
+        assertFalse(grad, "not graduated after blocked attempt");
+        assertEq(router.calls(), 0, "no deposit happened");
+
+        // Once the pair is clean, graduation succeeds.
+        router.setSkew(10_000);
+        pad.graduate(token);
+        (,,, grad) = pad.pools(token);
+        assertTrue(grad, "graduates once pair is clean");
     }
 
     function test_trade_afterGraduation_reverts() public {
         address token = _launch();
         vm.startPrank(trader);
         pad.buy{value: 0.6 ether}(token, 0);
+        vm.stopPrank();
+        pad.graduate(token);
+        vm.startPrank(trader);
         vm.expectRevert(CurveLaunchpad.AlreadyGraduated.selector);
         pad.buy{value: 0.01 ether}(token, 0);
         vm.expectRevert(CurveLaunchpad.AlreadyGraduated.selector);

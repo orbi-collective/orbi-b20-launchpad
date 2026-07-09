@@ -163,6 +163,7 @@ function buildToken(
     holders: null,
     bondingProgress: progress,
     ageMinutes: extras.ageMinutes,
+    readyToGraduate: !pool.graduated && pool.realEth >= params.gradEth,
     reserves: pool.graduated ? null : { realEth: pool.realEth.toString(), tokenReserve: pool.tokenReserve.toString() }
   };
 }

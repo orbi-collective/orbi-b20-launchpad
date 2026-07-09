@@ -29,6 +29,7 @@ function mapTradeError(err: unknown): string {
   if (/insufficient funds/i.test(msg)) return "Not enough ETH in the wallet for this trade plus gas.";
   if (/Slippage/i.test(msg)) return "Price moved beyond your slippage tolerance. Retry or raise slippage.";
   if (/AlreadyGraduated/i.test(msg)) return "This curve just graduated: trade it on the DEX instead.";
+  if (/CurveFull/i.test(msg)) return "The curve just filled. Buying is closed; it can be graduated to the DEX now.";
   return msg.split("\n")[0].slice(0, 160);
 }
 
@@ -37,7 +38,9 @@ type TxPhase = "idle" | "preparing" | "awaiting" | "pending" | "success" | "erro
 export function TradeWidget({ token, params }: { token: CurveToken; params: CurveParams }) {
   const router = useRouter();
   const { status, address, chainId: walletChain, connect, switchChain, getWalletClient } = useWallet();
-  const [side, setSide] = useState<"buy" | "sell">("buy");
+  // Curve full: buys are closed onchain (they revert CurveFull), only selling remains.
+  const buyClosed = token.readyToGraduate;
+  const [side, setSide] = useState<"buy" | "sell">(buyClosed ? "sell" : "buy");
   const [amount, setAmount] = useState("");
   const [slippage, setSlippage] = useState(1);
   const [tx, setTx] = useState<TxPhase>("idle");
@@ -189,7 +192,8 @@ export function TradeWidget({ token, params }: { token: CurveToken; params: Curv
           aria-selected={side === "buy"}
           className={`trade-tab buy ${side === "buy" ? "is-active" : ""}`}
           onClick={() => setSide("buy")}
-          disabled={graduated}
+          disabled={graduated || buyClosed}
+          title={buyClosed ? "Curve is full: buying is closed until graduation" : undefined}
         >
           Buy
         </button>

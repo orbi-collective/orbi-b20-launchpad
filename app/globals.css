@@ -4379,6 +4379,18 @@ button:disabled {
   line-height: 1.5;
 }
 
+/* Curve filled, awaiting graduation */
+.coin-meter-ready {
+  border: 1px solid rgba(110, 230, 170, 0.28);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(110, 230, 170, 0.05);
+}
+
+.coin-meter-ready .deploy-btn {
+  margin-top: 14px;
+}
+
 /* Holders */
 .holders-list {
   display: flex;

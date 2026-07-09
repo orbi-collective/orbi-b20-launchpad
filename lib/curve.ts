@@ -26,6 +26,8 @@ export const curveLaunchpadAbi = parseAbi([
   "function launch(string name, string symbol, string contractURI, bytes32 userSalt) returns (address token)",
   "function buy(address token, uint256 minTokensOut) payable returns (uint256 tokensOut)",
   "function sell(address token, uint256 tokenAmount, uint256 minEthOut) returns (uint256 ethOut)",
+  "function graduate(address token)",
+  "function isReadyToGraduate(address token) view returns (bool)",
   "function claimFees(address token) returns (uint256 amount)",
   "function pools(address token) view returns (address creator, uint128 realEth, uint128 tokenReserve, bool graduated)",
   "function creatorFees(address token) view returns (uint256)",
@@ -125,6 +127,8 @@ export type CurveToken = {
   holders: number | null;
   bondingProgress: number; // 0..1
   ageMinutes: number | null;
+  /** Curve filled to the graduation target but liquidity hasn't migrated yet: graduate() is callable. */
+  readyToGraduate: boolean;
   /** Raw reserves for exact client-side quoting; null in preview mode. */
   reserves: CurveReserves | null;
 };

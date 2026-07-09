@@ -22,6 +22,61 @@ function StatusPill({ status }: { status: CurveToken["status"] }) {
   return <span className={`coin-status coin-status-${status}`}>{label}</span>;
 }
 
+function GraduatePanel({ token }: { token: CurveToken }) {
+  const { status, address, connect, getWalletClient, switchChain, chainId: walletChain } = useWallet();
+  const [phase, setPhase] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [err, setErr] = useState<string | null>(null);
+  const pad = curveAddress(token.chainId);
+
+  async function graduate() {
+    if (!pad) return;
+    setErr(null);
+    if (status !== "connected" || !address) {
+      await connect();
+      return;
+    }
+    setPhase("sending");
+    try {
+      if (walletChain !== token.chainId) await switchChain(token.chainId);
+      const wallet = getWalletClient(token.chainId);
+      if (!wallet) throw new Error("Wallet unavailable.");
+      const pub = readClient(token.chainId);
+      const { request } = await pub.simulateContract({
+        account: address,
+        address: pad,
+        abi: curveLaunchpadAbi,
+        functionName: "graduate",
+        args: [token.address]
+      });
+      const hash = await wallet.writeContract(request);
+      await pub.waitForTransactionReceipt({ hash, confirmations: 1 });
+      setPhase("done");
+      window.setTimeout(() => window.location.reload(), 1200);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message.split("\n")[0].slice(0, 140) : "Graduation failed.");
+      setPhase("error");
+    }
+  }
+
+  return (
+    <div className="coin-meter coin-meter-ready">
+      <div className="coin-meter-head">
+        <span>Curve filled: ready to graduate</span>
+        <span className="mono">100%</span>
+      </div>
+      <p className="coin-meter-note">
+        Buying is closed and selling stays open. Anyone can migrate liquidity to a Base DEX now: the ETH plus
+        price-matched tokens seed a Uniswap pool, the LP is burned, and the rest of the curve supply is burned.
+      </p>
+      {phase === "done" ? <p className="launch-banner ok">Graduated. Reloading…</p> : null}
+      {err ? <p className="launch-banner error">{err}</p> : null}
+      <button type="button" className="deploy-btn" onClick={graduate} disabled={phase === "sending"}>
+        {phase === "sending" ? "Graduating…" : status !== "connected" ? "Connect wallet to graduate" : "Graduate to DEX"}
+      </button>
+    </div>
+  );
+}
+
 function BondingMeter({ token }: { token: CurveToken }) {
   if (token.status === "graduated") {
     return (
@@ -32,6 +87,9 @@ function BondingMeter({ token }: { token: CurveToken }) {
         <p className="coin-meter-note">Full bonding-curve supply migrated, liquidity now lives on a Base DEX pool.</p>
       </div>
     );
+  }
+  if (token.readyToGraduate) {
+    return <GraduatePanel token={token} />;
   }
   const pct = Math.round(token.bondingProgress * 100);
   return (
