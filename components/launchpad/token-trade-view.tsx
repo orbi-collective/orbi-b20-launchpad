@@ -209,7 +209,7 @@ export function TokenTradeView({ data, ethUsd }: { data: CoinData; ethUsd: numbe
       <div className="coin-stat-strip">
         <div>
           <span>Price</span>
-          <strong className="mono">{fmtPriceEth(token.priceEth)} ETH</strong>
+          <strong className="mono">{token.priceEth > 0 ? `${fmtPriceEth(token.priceEth)} ETH` : "—"}</strong>
         </div>
         <div>
           <span>Change</span>

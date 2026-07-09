@@ -9,10 +9,18 @@ import "./globals.css";
 
 const sans = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
+// Vercel sets these automatically at build time; no env config needed. Falls back to
+// localhost so `next dev` and `next build` still work outside Vercel.
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+
 export const metadata: Metadata = {
   title: "OrbiB20 — Launch, explore, and verify Base-native B20 tokens",
   description: "Launch a native B20 token on Base in one transaction, explore recent launches, and verify any token against the canonical B20 Factory.",
-  metadataBase: new URL("https://orbib20.local")
+  metadataBase: new URL(siteUrl)
 };
 
 export const viewport: Viewport = {

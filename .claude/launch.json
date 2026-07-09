@@ -7,6 +7,17 @@
       "runtimeArgs": ["dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "b20proof-dev-local-chain",
+      "runtimeExecutable": "node_modules/.bin/next",
+      "runtimeArgs": ["dev"],
+      "port": 3000,
+      "autoPort": true,
+      "env": {
+        "BASE_SEPOLIA_RPC_URL": "http://127.0.0.1:8545",
+        "NEXT_PUBLIC_CURVE_ADDRESS_84532": "0x22BAcc6749Da0f6e66A2e8D905f6452E15C72da6"
+      }
     }
   ]
 }

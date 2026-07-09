@@ -7,8 +7,10 @@ let cached: { price: number; at: number } | null = null;
 export async function getEthUsd(): Promise<number | null> {
   if (cached && Date.now() - cached.at < 60_000) return cached.price;
   try {
+    // Plain uncached fetch: the module-level cache above handles the 60s window, and
+    // Next's fetch cache refuses requests that carry an AbortSignal.
     const res = await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot", {
-      next: { revalidate: 60 },
+      cache: "no-store",
       signal: AbortSignal.timeout(4_000)
     });
     if (res.ok) {
