@@ -1,0 +1,16 @@
+{
+  "network": "base-mainnet",
+  "chainId": 8453,
+  "CurveLaunchpad": "0xd5a40a12B43761d255D141D11227e6Fce54b00fd",
+  "deployer": "0x1a25527Fb44C15Ca0D19Ea45f00AAea24563e4d7",
+  "router": "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24",
+  "params": {
+    "VIRTUAL_ETH": "1000000000000000000",
+    "GRAD_ETH": "4000000000000000000",
+    "FEE_BPS": 100,
+    "CREATOR_SHARE_BPS": 5000,
+    "GRAD_MAX_SLIPPAGE_BPS": 200
+  },
+  "deployedAt": "2026-07-09",
+  "commit": "c6c6d44"
+}
